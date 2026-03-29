@@ -2,19 +2,7 @@
 {% block title %}{{ 'Register' if mode == 'register' else 'Login' }} - Mather{% endblock %}
 
 {% block extra_styles %}
-<style>
-  .auth-wrap { max-width: 380px; margin: 40px auto 0; }
-
-  .auth-switch {
-    margin-top: 18px;
-    color: var(--muted);
-    font-size: 13px;
-    text-align: center;
-  }
-
-  .auth-switch a { color: var(--accent); text-decoration: none; }
-  .auth-switch a:hover { text-decoration: underline; }
-</style>
+<link rel="stylesheet" href="../static/css/auth.css">
 {% endblock %}
 
 {% block content %}
