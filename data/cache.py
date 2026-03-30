@@ -7,8 +7,11 @@ import tempfile
 import os
 from datetime import datetime
 from huggingface_hub import hf_hub_download, list_repo_files
-from config import SUBJECTS, repo_id, repo_type, REFRESH_INTERVAL, CACHE_FILE
+from config import SUBJECTS, repo_id, repo_type, REFRESH_INTERVAL, CACHE_FILE, translator
+from eng_to_ru import Translator
 
+if 'translator' not in locals():
+    translator = Translator()
 
 _lock = threading.Lock()
 _pool: dict[tuple, list] = {}
@@ -21,6 +24,20 @@ MAX_PROBLEMS_PER_KEY = 1000
 
 def _is_valid(question: str) -> bool:
     return not any(phrase in question for phrase in BLACKLIST)
+
+
+def _translate_problem(problem: dict) -> dict:
+    try:
+        original_question = problem['question']
+        translated_question = translator.run(original_question)
+        
+        translated_problem = problem.copy()
+        translated_problem['question'] = translated_question
+        translated_problem['original_question'] = original_question
+        
+        return translated_problem
+    except Exception:
+        return problem
 
 
 def _load_file(filepath: str, exclude_ids: set) -> list:
@@ -44,8 +61,7 @@ def _download_for(subject: str, difficulty: str) -> list:
 
     try:
         all_files = list_repo_files(repo_id, repo_type=repo_type)
-    except Exception as e:
-        print(f'Cache: failed to list repo files: {e}')
+    except Exception:
         return []
 
     files = [
@@ -56,7 +72,6 @@ def _download_for(subject: str, difficulty: str) -> list:
     ]
 
     if not files:
-        print(f'Cache: no files for {subject} {difficulty}')
         return []
 
     random.shuffle(files)
@@ -84,11 +99,8 @@ def _download_for(subject: str, difficulty: str) -> list:
                 collected.append(p)
                 seen_ids.add(p['id'])
 
-        except Exception as e:
-            print(f'Cache: failed to download {file}: {e}')
+        except Exception:
             continue
-
-    print(f'Cache: {subject} {difficulty} -> {len(collected)} problems')
 
     return collected
 
@@ -97,8 +109,8 @@ def _save_pool(pool: dict):
     try:
         with open(CACHE_FILE, 'wb') as f:
             pickle.dump(pool, f)
-    except Exception as e:
-        print(f'Cache: failed to save pool: {e}')
+    except Exception:
+        pass
 
 
 def _load_pool() -> dict:
@@ -107,10 +119,8 @@ def _load_pool() -> dict:
     try:
         with open(CACHE_FILE, 'rb') as f:
             pool = pickle.load(f)
-        print(f'Cache: loaded {sum(len(v) for v in pool.values())} problems from disk')
         return pool
-    except Exception as e:
-        print(f'Cache: failed to load pool from disk: {e}')
+    except Exception:
         return {}
 
 
@@ -134,12 +144,9 @@ def _refresh():
 def _background_loop():
     while True:
         try:
-            print(f'[{datetime.now().strftime("%H:%M:%S")}] Cache: refreshing...')
             _refresh()
-            total = sum(len(v) for v in _pool.values())
-            print(f'[{datetime.now().strftime("%H:%M:%S")}] Cache: done, {total} problems loaded')
-        except Exception as e:
-            print(f'Cache: refresh error: {e}')
+        except Exception:
+            pass
 
         time.sleep(REFRESH_INTERVAL)
 
@@ -179,4 +186,11 @@ def get_problem(subject: str, difficulty: str, solved_ids: set) -> dict | None:
     if not unsolved:
         return None
 
-    return random.choice(unsolved)
+    problem = random.choice(unsolved)
+    
+    from config import lang
+    
+    if lang == 'ru' and 'original_question' not in problem:
+        problem = _translate_problem(problem)
+        
+    return problem

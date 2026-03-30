@@ -1,4 +1,8 @@
 import dotenv
+from eng_to_ru import Translator
+
+
+translator = Translator()
 
 dotenv.load_dotenv()
 
@@ -18,6 +22,8 @@ SUBJECTS = [
     'Calculus',
     'Other'
 ]
+
+lang = "eng"
 
 repo_id = 'levbush/math_tasks_split'
 repo_type = 'dataset'
