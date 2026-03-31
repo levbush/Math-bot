@@ -80,7 +80,7 @@ def profile():
 @login_required
 def problem():
     if request.method == 'POST':
-        subject = request.form.get('subject', '').capitalize()
+        subject = ' '.join([word.capitalize() for word in request.form.get('subject', '').split()])
         difficulty = request.form.get('difficulty', 'any').lower()
 
         if subject not in SUBJECTS:
