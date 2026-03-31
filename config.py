@@ -23,7 +23,7 @@ SUBJECTS = [
     'Other'
 ]
 
-lang = "eng"
+lang = "ru"
 
 repo_id = 'levbush/math_tasks_split'
 repo_type = 'dataset'

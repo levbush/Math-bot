@@ -11,7 +11,7 @@ import time
 from config import SUBJECTS, DB_PATH
 
 _ai_last_call: dict[str, float] = defaultdict(float)
-AI_COOLDOWN = 60
+AI_COOLDOWN = 30
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'very_secret')
