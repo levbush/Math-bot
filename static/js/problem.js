@@ -26,19 +26,30 @@ const label = document.getElementById('ai-label');
 const responseEl = document.getElementById('ai-response');
 const confirmBtn = document.getElementById('confirm-btn');
 
-const modeLabels = { check: 'answer check', hint: 'hint', steps: 'step-by-step', explain: 'explanation' };
+const modeLabels = { 
+  check: 'answer check', 
+  hint: 'hint', 
+  steps: 'step-by-step', 
+  explain: 'explanation' 
+};
+
+console.log('Found buttons:', buttons.length);
 
 buttons.forEach(btn => {
   btn.addEventListener('click', async () => {
     const mode = btn.dataset.mode;
     const answer = document.getElementById('answer').value.trim();
+    
+    console.log('Button clicked:', mode, 'Answer length:', answer.length);
 
     buttons.forEach(b => { b.disabled = true; b.classList.remove('active'); });
     btn.classList.add('active');
-    panel.classList.add('visible');
-    label.textContent = modeLabels[mode];
-    responseEl.className = 'ai-response';
-    responseEl.innerHTML = '<span class="ai-cursor"></span>';
+    if (panel) panel.style.display = 'block';
+    if (label) label.textContent = modeLabels[mode];
+    if (responseEl) {
+      responseEl.className = 'ai-response';
+      responseEl.innerHTML = '<span class="ai-cursor"></span>';
+    }
 
     const body = new FormData();
     body.append('mode', mode);
@@ -47,33 +58,38 @@ buttons.forEach(btn => {
     try {
       const res = await fetch('/problem/ai', { method: 'POST', body });
       const data = await res.json();
+      
+      console.log('Response:', res.status, data);
 
       if (res.status === 429) {
         const mins = Math.ceil(data.wait / 60);
-        panel.classList.remove('visible');
-        showToast(`Too many requests - please wait ${mins} minute${mins !== 1 ? 's' : ''} before asking again.`);
+        if (panel) panel.style.display = 'none';
+        if (typeof showToast === 'function') {
+          showToast(`Too many requests - please wait ${mins} minute${mins !== 1 ? 's' : ''} before asking again.`);
+        }
         return;
       }
 
       if (!res.ok || data.error) {
-        responseEl.textContent = data.error || 'Request failed.';
+        if (responseEl) responseEl.textContent = data.error || 'Request failed.';
         return;
       }
 
       if (mode === 'check') {
-        renderMarkdown(responseEl, data.text);
+        if (responseEl) renderMarkdown(responseEl, data.text);
         if (data.verdict === 'CORRECT') {
-          responseEl.classList.add('check-correct');
+          if (responseEl) responseEl.classList.add('check-correct');
           if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.title = ''; }
         } else if (data.verdict === 'INCORRECT') {
-          responseEl.classList.add('check-wrong');
+          if (responseEl) responseEl.classList.add('check-wrong');
         }
       } else {
-        renderMarkdown(responseEl, data.text);
+        if (responseEl) renderMarkdown(responseEl, data.text);
       }
 
     } catch (e) {
-      responseEl.textContent = 'Request failed.';
+      console.error('Error:', e);
+      if (responseEl) responseEl.textContent = 'Request failed: ' + e.message;
     } finally {
       buttons.forEach(b => { b.disabled = false; });
       btn.classList.remove('active');

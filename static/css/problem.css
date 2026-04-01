@@ -48,8 +48,13 @@ transition: border-color 0.15s, color 0.15s;
 .btn-ai.active { border-color: var(--accent); color: var(--accent); }
 .btn-ai:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.ai-panel { display: none; }
-.ai-panel.visible { display: block; }
+.ai-panel {
+  display: none;
+}
+
+.ai-panel.visible {
+  display: block;
+}
 
 .ai-label {
 font-size: 11px;

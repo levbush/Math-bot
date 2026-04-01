@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="{% if lang == 'ru' %}ru{% else %}en{% endif %}" data-bs-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,8 +21,8 @@
     {% if current_user.is_authenticated %}
     <div class="d-flex align-items-center gap-4">
       <span class="nav-user">{{ current_user.username }}</span>
-      <a class="nav-link" href="{{ url_for('profile') }}">profile</a>
-      <a class="nav-link" href="{{ url_for('logout') }}">logout</a>
+      <a class="nav-link" href="{{ url_for('profile') }}">{% if lang == 'ru' %}профиль{% else %}profile{% endif %}</a>
+      <a class="nav-link" href="{{ url_for('logout') }}">{% if lang == 'ru' %}выход{% else %}logout{% endif %}</a>
     </div>
     {% endif %}
   </div>
