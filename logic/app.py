@@ -106,7 +106,7 @@ def problem_more():
         flash('No previous problem context.')
         return redirect(url_for('profile'))
 
-    if session.get('answer_verified'):
+    if session.pop('answer_verified', None):
         p = session.get('current_problem')
         if p:
             current_user.mark_solved(p['id'], p['subject'], p['difficulty'])
