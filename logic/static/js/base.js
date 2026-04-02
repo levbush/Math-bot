@@ -4,3 +4,5 @@ function showToast(msg, duration = 5000) {
   const t = bootstrap.Toast.getOrCreateInstance(el, { delay: duration, autohide: true });
   t.show();
 }
+
+

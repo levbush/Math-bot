@@ -20,6 +20,7 @@
     <a class="nav-brand" href="{{ url_for('index') }}">∑ Mather</a>
     {% if current_user.is_authenticated %}
     <div class="d-flex align-items-center gap-4">
+      <button><img src="{{ url_for('static', filename='img/base.js') }}" alt=""></button>
       <span class="nav-user">{{ current_user.username }}</span>
       <a class="nav-link" href="{{ url_for('profile') }}">{% if lang == 'ru' %}профиль{% else %}profile{% endif %}</a>
       <a class="nav-link" href="{{ url_for('logout') }}">{% if lang == 'ru' %}выход{% else %}logout{% endif %}</a>
