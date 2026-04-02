@@ -15,7 +15,7 @@ if 'translator' not in locals():
 
 _lock = threading.Lock()
 _pool: dict[tuple, list] = {}
-_tmp_dir = tempfile.mkdtemp(prefix='mathbot_cache_')
+_tmp_dir = tempfile.mkdtemp(prefix='mather_cache_')
 
 BLACKLIST = ['an educational piece', '¶', "Here's an extract", 'Welsh teams']
 
