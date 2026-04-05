@@ -10,16 +10,16 @@
 
 <div class="card">
   {% if lang == "ru" %}
-    <div class="section-title">{{ trans.run('Решено по предметам') }}</div>
+    <div class="section-title">Решено по предметам</div>
   {% else %}
-    <div class="section-title">{{ 'solved by subject' }}</div>
+    <div class="section-title">Solved by subject</div>
   {% endif %}
   <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-2 mb-2">
     {% for subject in subjects %}
     <div class="col">
       <div class="stat-cell">
         {% if lang == "ru" %}
-          <div class="stat-label">{{ trans.run(subject) }}</div>
+          <div class="stat-label">{{ trans.run(subject) if trans else subject }}</div>
         {% else %}
           <div class="stat-label">{{ subject }}</div>
         {% endif %}
@@ -32,9 +32,9 @@
   <hr>
 
   {% if lang == "ru" %}
-    <div class="section-title">{{ trans.run('Решено по сложности') }}</div>
+    <div class="section-title">Решено по сложности</div>
   {% else %}
-    <div class="section-title">solved by difficulty</div>
+    <div class="section-title">Solved by difficulty</div>
   {% endif %}
   <div class="row row-cols-5 row-cols-sm-10 g-2">
     {% for d in range(1, 11) %}
@@ -48,34 +48,61 @@
   </div>
 </div>
 
+<!-- Отдельная карточка для достижений -->
 <div class="card">
   {% if lang == "ru" %}
-    <div class="section-title">{{ trans.run('Найти задачу') }}</div>
+    <div class="section-title">Достижения</div>
   {% else %}
-    <div class="section-title">find a problem</div>
+    <div class="section-title">Achievements</div>
+  {% endif %}
+  <div class="row row-cols-1 row-cols-sm-2 g-2">
+    {% for achievement, achieved in achievements.items() %}
+    <div class="col">
+      <div class="stat-cell {% if achieved %}achievement-unlocked{% else %}achievement-locked{% endif %}">
+        <div class="stat-label">
+          {% if lang == "ru" %}
+            {{ trans.run(achievement) if trans else achievement }}
+          {% else %}
+            {{ achievement }}
+          {% endif %}
+        </div>
+        <div class="stat-value">
+          {% if achieved %}✓{% else %}🔒{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  {% if lang == "ru" %}
+    <div class="section-title">Найти задачу</div>
+  {% else %}
+    <div class="section-title">Find a problem</div>
   {% endif %}
   <form method="POST" action="{{ url_for('problem') }}">
     {% if lang == "ru" %}
-      <label class="form-label" for="subject">{{ trans.run('Предмет') }}</label>
+      <label class="form-label" for="subject">Предмет</label>
     {% else %}
-      <label class="form-label" for="subject">subject</label>
+      <label class="form-label" for="subject">Subject</label>
     {% endif %}
     <select class="form-select" id="subject" name="subject">
       {% for s in subjects %}
       <option value="{{ s }}">
-        {% if lang == "ru" %}{{ trans.run(s) }}{% else %}{{ s }}{% endif %}
+        {% if lang == "ru" %}{{ trans.run(s) if trans else s }}{% else %}{{ s }}{% endif %}
       </option>
       {% endfor %}
     </select>
 
     {% if lang == "ru" %}
-      <label class="form-label" for="difficulty">{{ trans.run('Сложность') }}</label>
+      <label class="form-label" for="difficulty">Сложность</label>
     {% else %}
-      <label class="form-label" for="difficulty">difficulty</label>
+      <label class="form-label" for="difficulty">Difficulty</label>
     {% endif %}
     <select class="form-select" id="difficulty" name="difficulty">
       {% if lang == "ru" %}
-        <option value="any">{{ trans.run('любая') }}</option>
+        <option value="any">любая</option>
       {% else %}
         <option value="any">any</option>
       {% endif %}
@@ -86,7 +113,7 @@
 
     <div class="d-flex gap-2 mt-4">
       <button type="submit" class="btn btn-primary">
-        {% if lang == "ru" %}{{ trans.run('Найти задачу') }} →{% else %}find problem →{% endif %}
+        {% if lang == "ru" %}Найти задачу →{% else %}Find problem →{% endif %}
       </button>
     </div>
   </form>

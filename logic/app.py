@@ -61,8 +61,10 @@ def logout():
 @app.route('/profile')
 @login_required
 def profile():
+    for i in current_user.get_achievements():
+        print(i)
     return render_template('profile.html', username=current_user.username, stats=current_user.get_stats(), subjects=SUBJECTS,
-     lang=lang, trans=translator)
+     lang=lang, trans=translator, achievements=current_user.get_achievements())
 
 
 @app.route('/problem', methods=['GET', 'POST'])

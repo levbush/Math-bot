@@ -6,8 +6,15 @@ from config import SUBJECTS
 from typing import Optional
 
 
-def _default_stats():
+def _default_stats() -> dict[str, int]:
     return {key: 0 for key in SUBJECTS + [str(d) for d in range(1, 11)]}
+
+def _default_achievements() -> dict[str, bool]:
+    return {
+        "10 tasks in a row without errors": False,
+        "100 solved tasks": False,
+        "topic completion": False
+    }
 
 
 class User(SqlAlchemyBase, UserMixin):
@@ -18,6 +25,7 @@ class User(SqlAlchemyBase, UserMixin):
     password_hash = sa.Column(sa.String, nullable=False)
     solved = sa.Column(sa.JSON, nullable=False, default=list)
     stats = sa.Column(sa.JSON, nullable=False, default=dict)
+    achievements = sa.Column(sa.JSON, nullable=False, default=dict)
 
     @classmethod
     def register(cls, username: str, password: str) -> Optional['User']:
@@ -29,6 +37,7 @@ class User(SqlAlchemyBase, UserMixin):
                 password_hash=generate_password_hash(password),
                 solved=[],
                 stats=_default_stats(),
+                achievements = _default_achievements()
             )
             s.add(user)
             s.commit()
@@ -74,3 +83,8 @@ class User(SqlAlchemyBase, UserMixin):
         with create_session() as s:
             user = s.get(User, self.id)
             return user.stats
+        
+    def get_achievements(self) -> dict:
+        with create_session() as s:
+            user = s.get(User, self.id)
+            return user.achievements
