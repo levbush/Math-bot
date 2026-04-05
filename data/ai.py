@@ -1,6 +1,7 @@
 import re
 import requests
 import os
+from flask import session
 from config import translator, lang
 
 MODEL = 'Qwen/Qwen2.5-72B-Instruct'
@@ -101,31 +102,46 @@ _PROMPTS = {
     ),
 }
 
-if lang == "ru":
-    _LATEX_RULES = _translate_prompt(_LATEX_RULES)
-    _SYSTEM = _translate_prompt(_SYSTEM)
-    _CHECK_SYSTEM = _translate_prompt(_CHECK_SYSTEM)
-    _SYSTEM = _translate_prompt(_SYSTEM)
-    _PROMPTS = {
-        'hint': lambda problem, answer: _translate_prompt(
+
+def _get_system_prompt() -> str:
+    if session and session.get("lang") == "ru":
+        return _translate_prompt(_SYSTEM)
+    return _SYSTEM
+
+def _get_check_system_prompt() -> str:
+    if session and session.get("lang") == "ru":
+        return _translate_prompt(_CHECK_SYSTEM)
+    return _CHECK_SYSTEM
+
+def _get_prompt_template(mode: str, problem: dict, user_answer: str) -> str:
+    current_lang = session.get("lang", "en") if session else "en"
+    
+    if mode == 'hint':
+        prompt = (
             f"Official solution:\n{problem['response']}\n\n"
             f"Problem:\n{problem['question']}\n\n"
-            f"Student's current attempt: {answer or '(none yet)'}\n\n"
+            f"Student's current attempt: {user_answer or '(none yet)'}\n\n"
             'Give a single helpful hint. Do not solve the problem.'
-        ),
-        'steps': lambda problem, answer: _translate_prompt(
+        )
+    elif mode == 'steps':
+        prompt = (
             f"Official solution:\n{problem['response']}\n\n"
             f"Problem:\n{problem['question']}\n\n"
-            f"Student's current attempt: {answer or '(none yet)'}\n\n"
+            f"Student's current attempt: {user_answer or '(none yet)'}\n\n"
             'Walk through the solution step by step.'
-        ),
-        'explain': lambda problem, answer: _translate_prompt(
+        )
+    elif mode == 'explain':
+        prompt = (
             f"Problem:\n{problem['question']}\n\n"
             f"Official solution:\n{problem['response']}\n\n"
             'Explain this solution clearly, highlighting the key ideas and techniques used.'
-        ),
-    }
-
+        )
+    else:
+        raise ValueError(f'Unknown mode: {mode}')
+    
+    if current_lang == "ru":
+        return _translate_prompt(prompt)
+    return prompt
 
 
 def _fix_latex(text: str) -> str:
@@ -137,7 +153,7 @@ def _fix_latex(text: str) -> str:
 def _parse_verdict(text: str) -> dict:
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     for line in reversed(lines):
-        clean = re.sub(r'[^a-zA-Z]', '', line).upper()
+        clean = re.sub(r'[^a-zA-ZА-Яа-я]', '', line).upper()
         if clean == 'CORRECT':
             body = text[:text.rfind(line)].strip()
             return {'verdict': 'CORRECT', 'text': body or 'Correct!'}
@@ -149,18 +165,21 @@ def _parse_verdict(text: str) -> dict:
 
 def check_answer(problem: dict, user_answer: str) -> dict:
     correct = (problem.get('extracted_answer') or '').strip()
-
+    
     if correct and correct == user_answer.strip():
         return {'verdict': 'CORRECT', 'text': 'Well done!'}
-
-    if lang == "ru":
+    
+    current_lang = session.get("lang", "en") if session else "en"
+    
+    if current_lang == "ru":
         prompt = _translate_prompt(
             f"Problem:\n{problem['question']}\n\n"
             f"Correct answer: {correct or '(see solution)'}\n\n"
             f"<student_answer>{user_answer or '(empty)'}</student_answer>\n\n"
             "Does the student's answer inside <student_answer> match the correct answer "
             "(mathematically equivalent is fine)? "
-            "Briefly explain if wrong, then on the very last line write only ") + "CORRECT or INCORRECT."
+            "Briefly explain if wrong, then on the very last line write only CORRECT or INCORRECT."
+        )
     else:
         prompt = (
             f"Problem:\n{problem['question']}\n\n"
@@ -168,34 +187,32 @@ def check_answer(problem: dict, user_answer: str) -> dict:
             f"<student_answer>{user_answer or '(empty)'}</student_answer>\n\n"
             "Does the student's answer inside <student_answer> match the correct answer "
             "(mathematically equivalent is fine)? "
-            "Briefly explain if wrong, then on the very last line write only CORRECT or INCORRECT.")
-
-    print(prompt)
-    print(_CHECK_SYSTEM)
-
+            "Briefly explain if wrong, then on the very last line write only CORRECT or INCORRECT."
+        )
+    
     text = _query(
         messages=[
-            {'role': 'system', 'content': _CHECK_SYSTEM},
+            {'role': 'system', 'content': _get_check_system_prompt()},
             {'role': 'user', 'content': prompt},
         ],
         max_tokens=300,
         temperature=0.2,
     )
-    print(text)
-
+    
     if not text:
         return {'verdict': 'ERROR', 'text': 'AI check failed.'}
-
+    
     return _parse_verdict(_fix_latex(text))
 
 
 def get_ai_response(problem: dict, mode: str, user_answer: str) -> str:
     if mode not in _PROMPTS:
         raise ValueError(f'Unknown mode: {mode}')
-    prompt = _PROMPTS[mode](problem, user_answer)
+    
+    prompt = _get_prompt_template(mode, problem, user_answer)
     text = _query(
         messages=[
-            {'role': 'system', 'content': _SYSTEM},
+            {'role': 'system', 'content': _get_system_prompt()},
             {'role': 'user', 'content': prompt},
         ],
     )

@@ -169,7 +169,7 @@ def start():
     t.start()
 
 
-def get_problem(subject: str, difficulty: str, solved_ids: set) -> dict | None:
+def get_problem(subject: str, difficulty: str, solved_ids: set, langu) -> dict | None:
     with _lock:
         if difficulty == 'any':
             candidates = [
@@ -188,9 +188,9 @@ def get_problem(subject: str, difficulty: str, solved_ids: set) -> dict | None:
 
     problem = random.choice(unsolved)
     
-    from config import lang
+    from flask import session
     
-    if lang == 'ru' and 'original_question' not in problem:
+    if langu == 'ru' and 'original_question' not in problem:
         problem = _translate_problem(problem)
         
     return problem

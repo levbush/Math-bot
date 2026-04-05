@@ -8,7 +8,7 @@ from data.ai import check_answer, get_ai_response, NoKeyError
 from collections import defaultdict
 import time
 
-from config import SUBJECTS, lang, translator
+from config import SUBJECTS, translator, lang
 
 _ai_last_call: dict[str, float] = defaultdict(float)
 AI_COOLDOWN = 15
@@ -63,9 +63,20 @@ def logout():
 def profile():
     for i in current_user.get_achievements():
         print(i)
+    if session.get("lang") is None: 
+        session["lang"] = lang
+    print(session["lang"])
     return render_template('profile.html', username=current_user.username, stats=current_user.get_stats(), subjects=SUBJECTS,
-     lang=lang, trans=translator, achievements=current_user.get_achievements())
+                         lang=session["lang"], trans=translator, achievements=current_user.get_achievements())
 
+@app.route('/set_language', methods=['POST'])
+@login_required
+def set_language():
+    data = request.get_json()
+    lang = data.get('lang')
+    if lang in ['en', 'ru']:
+        session['lang'] = lang
+    return jsonify({'status': 'ok'})
 
 @app.route('/problem', methods=['GET', 'POST'])
 @login_required
@@ -82,7 +93,7 @@ def problem():
             flash('Invalid difficulty.')
             return redirect(url_for('profile'))
 
-        p = get_problem(subject, difficulty, current_user.get_solved())
+        p = get_problem(subject, difficulty, current_user.get_solved(), session["lang"])
         if not p:
             flash('No unsolved problems found. Cache may still be loading - try again in about 10 minutes.')
             return redirect(url_for('profile'))
@@ -113,7 +124,7 @@ def problem_more():
         if p:
             current_user.mark_solved(p['id'], p['subject'], p['difficulty'])
 
-    p = get_problem(subject, difficulty, current_user.get_solved())
+    p = get_problem(subject, difficulty, current_user.get_solved(), session["lang"])
     if not p:
         flash('No unsolved problems found.')
         return redirect(url_for('profile'))
