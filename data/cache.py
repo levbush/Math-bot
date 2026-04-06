@@ -5,7 +5,6 @@ import threading
 import time
 import tempfile
 import os
-from datetime import datetime
 from huggingface_hub import hf_hub_download, list_repo_files
 from config import SUBJECTS, repo_id, repo_type, REFRESH_INTERVAL, CACHE_FILE
 
@@ -20,6 +19,22 @@ MAX_PROBLEMS_PER_KEY = 1000
 
 def _is_valid(question: str) -> bool:
     return not any(phrase in question for phrase in BLACKLIST)
+
+
+def _translate_problem(problem: dict) -> dict:
+    try:
+        from data.ai import translate_text
+        
+        original_question = problem['question']
+        translated_question = translate_text(original_question)
+        
+        translated_problem = problem.copy()
+        translated_problem['question'] = translated_question
+        translated_problem['original_question'] = original_question
+        
+        return translated_problem
+    except Exception:
+        return problem
 
 
 def _load_file(filepath: str, exclude_ids: set) -> list:
@@ -113,7 +128,6 @@ def _refresh():
         for difficulty in [str(d) for d in range(1, 11)]:
             key = (subject, difficulty)
             problems = _download_for(subject, difficulty)
-
             new_pool[key] = problems
 
     with _lock:
@@ -129,26 +143,23 @@ def _background_loop():
             _refresh()
         except Exception:
             pass
-
         time.sleep(REFRESH_INTERVAL)
 
 
 def start():
     saved = _load_pool()
-    func = _background_loop
-
+    
     if saved:
         with _lock:
             _pool.update(saved)
-
-        def delayed():
-            time.sleep(REFRESH_INTERVAL)
+        threading.Thread(target=_background_loop, daemon=True).start()
+    else:
+        def first_refresh():
+            time.sleep(1)
+            _refresh()
             _background_loop()
-
-        func = delayed
-
-    t = threading.Thread(target=func, daemon=True)
-    t.start()
+        
+        threading.Thread(target=first_refresh, daemon=True).start()
 
 
 def get_problem(subject: str, difficulty: str, solved_ids: set, lang: str) -> dict | None:
@@ -171,7 +182,6 @@ def get_problem(subject: str, difficulty: str, solved_ids: set, lang: str) -> di
     problem = random.choice(unsolved)
     
     if lang == 'ru' and 'original_question' not in problem:
-        from flask import session
-        pass
+        problem = _translate_problem(problem)
         
     return problem

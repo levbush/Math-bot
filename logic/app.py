@@ -3,13 +3,15 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from data.db_session import global_init
 from data.user import User
-from data.cache import start as get_problem
+from data.cache import get_problem, start as start_cache
 from data.ai import check_answer, get_ai_response, NoKeyError
 from collections import defaultdict
 import time
 from trans_ru import ACHIEVEMENTS_RU, SUBJECTS_RU
 
 from config import SUBJECTS, lang
+
+start_cache()
 
 _ai_last_call: dict[str, float] = defaultdict(float)
 AI_COOLDOWN = 15
@@ -20,7 +22,6 @@ app.secret_key = os.environ.get('SECRET_KEY', 'very_secret')
 @app.route('/')
 def index():
     return redirect(url_for('profile') if current_user.is_authenticated else url_for('login'))
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -38,7 +39,6 @@ def register():
         return redirect(url_for('profile'))
     return render_template('auth.html', mode='register')
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -52,12 +52,10 @@ def login():
         return redirect(url_for('profile'))
     return render_template('auth.html', mode='login')
 
-
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('login'))
-
 
 @app.route('/profile')
 @login_required
@@ -74,9 +72,9 @@ def profile():
 @login_required
 def set_language():
     data = request.get_json()
-    lang = data.get('lang')
-    if lang in ['en', 'ru']:
-        session['lang'] = lang
+    lang_code = data.get('lang')
+    if lang_code in ['en', 'ru']:
+        session['lang'] = lang_code
     return jsonify({'status': 'ok'})
 
 @app.route('/problem', methods=['GET', 'POST'])
@@ -94,7 +92,7 @@ def problem():
             flash('Invalid difficulty.')
             return redirect(url_for('profile'))
 
-        p = get_problem(subject, difficulty, current_user.get_solved(), session["lang"])
+        p = get_problem(subject, difficulty, current_user.get_solved(), session.get("lang", "en"))
         if not p:
             flash('No unsolved problems found. Cache may still be loading - try again in about 10 minutes.')
             return redirect(url_for('profile'))
@@ -108,8 +106,7 @@ def problem():
     if not p:
         return redirect(url_for('profile'))
     print(p)
-    return render_template('problem.html', problem=p)
-
+    return render_template('problem.html', problem=p, lang=session.get("lang", "en"))
 
 @app.route('/problem/more')
 @login_required
@@ -125,14 +122,13 @@ def problem_more():
         if p:
             current_user.mark_solved(p['id'], p['subject'], p['difficulty'])
 
-    p = get_problem(subject, difficulty, current_user.get_solved(), session["lang"])
+    p = get_problem(subject, difficulty, current_user.get_solved(), session.get("lang", "en"))
     if not p:
         flash('No unsolved problems found.')
         return redirect(url_for('profile'))
 
     session['current_problem'] = p
     return redirect(url_for('problem'))
-
 
 @app.route('/problem/confirm', methods=['POST'])
 @login_required
@@ -149,7 +145,6 @@ def problem_confirm():
     flash('Problem marked as solved!')
     return redirect(url_for('profile'))
 
-
 @app.route('/problem/ai', methods=['POST'])
 @login_required
 def problem_ai():
@@ -159,7 +154,8 @@ def problem_ai():
 
     mode = request.form.get('mode')
     user_answer = request.form.get('answer', '').strip()
-    if not user_answer and mode == 'check': return
+    if not user_answer and mode == 'check':
+        return
 
     if mode not in ('check', 'hint', 'steps', 'explain'):
         return jsonify({'error': 'Invalid mode.'}), 400

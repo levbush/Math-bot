@@ -2,7 +2,6 @@ import re
 import requests
 import os
 from flask import session
-from config import lang
 
 MODEL = 'Qwen/Qwen2.5-72B-Instruct'
 API_URL = 'https://router.huggingface.co/v1/chat/completions'
@@ -45,6 +44,24 @@ def _query(messages: list, max_tokens=1024, temperature=0.6) -> str:
         raise
     except Exception:
         return ''
+
+
+def translate_text(text: str) -> str:
+    if not HF_API_KEY:
+        return text
+    
+    try:
+        response = _query(
+            messages=[
+                {'role': 'system', 'content': 'You are a translator. Translate the following text from English to Russian. Keep all mathematical notation and LaTeX exactly as is. Do not translate any code, formulas, or mathematical expressions.'},
+                {'role': 'user', 'content': f'Translate to Russian: {text}'}
+            ],
+            max_tokens=2000,
+            temperature=0.3
+        )
+        return response if response else text
+    except Exception:
+        return text
 
 
 _LATEX_RULES = (
