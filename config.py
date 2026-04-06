@@ -1,7 +1,6 @@
 import dotenv
 
 
-
 dotenv.load_dotenv()
 
 DB_PATH = 'bot.db'
