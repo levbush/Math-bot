@@ -9,7 +9,7 @@ from collections import defaultdict
 import time
 from trans_ru import ACHIEVEMENTS_RU, SUBJECTS_RU
 
-from config import SUBJECTS, lang
+from config import SUBJECTS
 
 start_cache()
 
@@ -60,21 +60,14 @@ def logout():
 @app.route('/profile')
 @login_required
 def profile():
-    for i in current_user.get_achievements():
-        print(i)
-    if session.get("lang") is None: 
-        session["lang"] = lang
-    print(session["lang"])
+    print(current_user.get_lang())
     return render_template('profile.html', username=current_user.username, stats=current_user.get_stats(), subjects=SUBJECTS,
-                         lang=session["lang"], trans=[SUBJECTS_RU, ACHIEVEMENTS_RU], achievements=current_user.get_achievements())
+                         lang=current_user.get_lang(), trans=[SUBJECTS_RU, ACHIEVEMENTS_RU], achievements=current_user.get_achievements())
 
 @app.route('/set_language', methods=['POST'])
 @login_required
 def set_language():
-    data = request.get_json()
-    lang_code = data.get('lang')
-    if lang_code in ['en', 'ru']:
-        session['lang'] = lang_code
+    current_user.set_lang()
     return jsonify({'status': 'ok'})
 
 @app.route('/problem', methods=['GET', 'POST'])
@@ -92,7 +85,7 @@ def problem():
             flash('Invalid difficulty.')
             return redirect(url_for('profile'))
 
-        p = get_problem(subject, difficulty, current_user.get_solved(), session.get("lang", "en"))
+        p = get_problem(subject, difficulty, current_user.get_solved(), current_user.get_lang())
         if not p:
             flash('No unsolved problems found. Cache may still be loading - try again in about 10 minutes.')
             return redirect(url_for('profile'))
@@ -106,7 +99,7 @@ def problem():
     if not p:
         return redirect(url_for('profile'))
     print(p)
-    return render_template('problem.html', problem=p, lang=session.get("lang", "en"))
+    return render_template('problem.html', problem=p, lang=current_user.get_lang())
 
 @app.route('/problem/more')
 @login_required
@@ -122,7 +115,7 @@ def problem_more():
         if p:
             current_user.mark_solved(p['id'], p['subject'], p['difficulty'])
 
-    p = get_problem(subject, difficulty, current_user.get_solved(), session.get("lang", "en"))
+    p = get_problem(subject, difficulty, current_user.get_solved(), current_user.get_lang())
     if not p:
         flash('No unsolved problems found.')
         return redirect(url_for('profile'))
