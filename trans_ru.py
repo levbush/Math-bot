@@ -16,7 +16,6 @@ SUBJECTS_RU = {
 ACHIEVEMENTS_RU = {
     "10 tasks in a row without errors": "10 задач подряд без ошибок",
     "100 solved tasks": "100 решённых задач",
-    "topic completion": "Завершение темы"
 }
 
 

@@ -2,6 +2,7 @@ import re
 import requests
 import os
 from flask import session
+from flask_login import current_user
 
 MODEL = 'Qwen/Qwen2.5-72B-Instruct'
 API_URL = 'https://router.huggingface.co/v1/chat/completions'
@@ -91,12 +92,12 @@ _CHECK_SYSTEM = (
 
 
 def _get_system_prompt() -> str:
-    if session and session.get("lang") == "ru":
+    if session and current_user.get_lang() == "ru":
         return _SYSTEM_RU
     return _SYSTEM
 
 def _get_check_system_prompt() -> str:
-    if session and session.get("lang") == "ru":
+    if session and current_user.get_lang() == "ru":
         return _CHECK_SYSTEM_RU
     return _CHECK_SYSTEM
 
@@ -123,7 +124,7 @@ def check_answer(problem: dict, user_answer: str) -> dict:
     if correct and correct == user_answer.strip():
         return {'verdict': 'CORRECT', 'text': 'Well done!'}
     
-    current_lang = session.get("lang", "en") if session else "en"
+    current_lang = current_user.get_lang() 
     
     if current_lang == "ru":
         prompt = (
@@ -160,7 +161,7 @@ def check_answer(problem: dict, user_answer: str) -> dict:
 
 
 def get_ai_response(problem: dict, mode: str, user_answer: str) -> str:
-    current_lang = session.get("lang", "en") if session else "en"
+    current_lang = current_user.get_lang()
     
     if mode == 'hint':
         if current_lang == "ru":
