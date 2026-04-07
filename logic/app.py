@@ -12,8 +12,6 @@ from config import SUBJECTS
 
 start_cache()
 
-session.setdefault('correct_in_a_row', 0)
-
 _ai_last_call: dict[str, float] = defaultdict(float)
 AI_COOLDOWN = 15
 
@@ -112,7 +110,7 @@ def problem_more():
         return redirect(url_for('profile'))
 
     if session.pop('answer_verified', None):
-        session['correct_in_a_row'] += 1
+        session['correct_in_a_row'] = session.get('correct_in_a_row', 0) + 1
         p = session.get('current_problem')
         if p:
             current_user.mark_solved(p['id'], p['subject'], p['difficulty'])
@@ -139,7 +137,7 @@ def problem_confirm():
     current_user.mark_solved(p['id'], p['subject'], p['difficulty'])
     session.pop('current_problem', None)
     session.pop('answer_verified', None)
-    session['correct_in_a_row'] += 1
+    session['correct_in_a_row'] = session.get('correct_in_a_row', 0) + 1
     flash('Problem marked as solved!')
     return redirect(url_for('profile'))
 
