@@ -8,6 +8,7 @@ from collections import defaultdict
 import time
 from trans_ru import ACHIEVEMENTS_RU, SUBJECTS_RU
 from config import SUBJECTS
+from data.db_session import create_session
 
 start_cache()
 
@@ -190,3 +191,24 @@ def problem_ai():
 
     except NoKeyError:
         return jsonify({'error': 'AI is not configured.'}), 503
+
+@app.route('/user/avatar')
+@login_required
+def user_avatar():
+    return jsonify({
+        'username': current_user.username,
+        'avatar_color': current_user.get_avatar_color(),
+        'initials': current_user.username[:2].upper()
+    })
+
+@app.route('/user/update_avatar_color', methods=['POST'])
+@login_required
+def update_avatar_color():
+    data = request.get_json()
+    color = data.get('color')
+    if color:
+        with create_session() as s:
+            user = s.get(User, current_user.id)
+            user.avatar_color = color
+            s.commit()
+    return jsonify({'status': 'ok'})

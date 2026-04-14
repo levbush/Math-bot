@@ -5,6 +5,7 @@ from data.db_session import SqlAlchemyBase, create_session
 from config import lang, _default_stats
 from logic.achievements import _default_achievements, ACHIEVEMENTS, AchievementType, SUBJECT, SUBJECTS, Achievement
 from typing import Optional
+import hashlib
 
 
 class User(SqlAlchemyBase, UserMixin):
@@ -17,6 +18,7 @@ class User(SqlAlchemyBase, UserMixin):
     solved = sa.Column(sa.JSON, nullable=False, default=list)
     stats = sa.Column(sa.JSON, nullable=False, default=dict)
     achievements = sa.Column(sa.JSON, nullable=False, default=dict)
+    avatar_color = sa.Column(sa.String, nullable=False, default='#FF6B6B')
 
     @classmethod
     def register(cls, username: str, password: str) -> Optional['User']:
@@ -28,12 +30,22 @@ class User(SqlAlchemyBase, UserMixin):
                 password_hash=generate_password_hash(password),
                 solved=[],
                 stats=_default_stats(),
-                achievements = _default_achievements()
+                achievements=_default_achievements(),
+                avatar_color=cls._generate_avatar_color(username)
             )
             s.add(user)
             s.commit()
             s.refresh(user)
             return user
+
+    @classmethod
+    def _generate_avatar_color(cls, username: str) -> str:
+        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+                  '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2',
+                  '#F8C471', '#A3E4D7', '#F9E79F', '#D7BDE2', '#F1948A']
+        hash_val = hashlib.md5(username.encode()).hexdigest()
+        index = int(hash_val[:8], 16) % len(colors)
+        return colors[index]
 
     @classmethod
     def get_by_id(cls, user_id: int) -> Optional['User']:
@@ -94,12 +106,15 @@ class User(SqlAlchemyBase, UserMixin):
         with create_session() as s:
             user = s.get(User, self.id)
             return user.achievements
+    
+    def get_avatar_color(self) -> str:
+        with create_session() as s:
+            user = s.get(User, self.id)
+            return user.avatar_color
         
     def update_achievements(self, user, web_session):
-        
         with create_session() as s:
             user = s.merge(user)
-
             solved_count = sum(user.stats[subject] for subject in SUBJECTS)
             generic_subject = SUBJECT(None)
             def mark(achievement: Achievement, true=True):
@@ -115,11 +130,8 @@ class User(SqlAlchemyBase, UserMixin):
                     continue
                 match achievement.type:
                     case AchievementType.solved:
-                        print(achievement, achievement.condition(solved_count, achievement.condition_reference_point))
                         if achievement.condition(solved_count, achievement.condition_reference_point):
                             mark(achievement)
-                            print(user.achievements)
-
                     case AchievementType.correct_streak:
                         if achievement.condition(web_session.get('correct_in_a_row', 0), achievement.condition_reference_point):
                             mark(achievement)

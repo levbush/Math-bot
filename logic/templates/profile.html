@@ -3,10 +3,40 @@
 
 {% block extra_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/avatar.css') }}">
 {% endblock %}
 
 {% block content %}
-<h1>{{ username }}</h1>
+<div class="profile-header">
+    <div class="avatar-edit">
+        <div class="avatar" id="avatar" style="background-color: {{ current_user.get_avatar_color() }}">
+            {{ current_user.username[:2].upper() }}
+        </div>
+        <div class="avatar-edit-btn" onclick="showColorPalette()">
+            🎨
+        </div>
+    </div>
+    <h1>{{ username }}</h1>
+</div>
+
+<div id="overlay" class="overlay" onclick="hideColorPalette()"></div>
+<div id="colorPalette" class="color-palette">
+    <div class="color-option" style="background-color: #FF6B6B" onclick="changeAvatarColor('#FF6B6B')"></div>
+    <div class="color-option" style="background-color: #4ECDC4" onclick="changeAvatarColor('#4ECDC4')"></div>
+    <div class="color-option" style="background-color: #45B7D1" onclick="changeAvatarColor('#45B7D1')"></div>
+    <div class="color-option" style="background-color: #96CEB4" onclick="changeAvatarColor('#96CEB4')"></div>
+    <div class="color-option" style="background-color: #FFEAA7" onclick="changeAvatarColor('#FFEAA7')"></div>
+    <div class="color-option" style="background-color: #DDA0DD" onclick="changeAvatarColor('#DDA0DD')"></div>
+    <div class="color-option" style="background-color: #98D8C8" onclick="changeAvatarColor('#98D8C8')"></div>
+    <div class="color-option" style="background-color: #F7DC6F" onclick="changeAvatarColor('#F7DC6F')"></div>
+    <div class="color-option" style="background-color: #BB8FCE" onclick="changeAvatarColor('#BB8FCE')"></div>
+    <div class="color-option" style="background-color: #85C1E2" onclick="changeAvatarColor('#85C1E2')"></div>
+    <div class="color-option" style="background-color: #F8C471" onclick="changeAvatarColor('#F8C471')"></div>
+    <div class="color-option" style="background-color: #A3E4D7" onclick="changeAvatarColor('#A3E4D7')"></div>
+    <div class="color-option" style="background-color: #F9E79F" onclick="changeAvatarColor('#F9E79F')"></div>
+    <div class="color-option" style="background-color: #D7BDE2" onclick="changeAvatarColor('#D7BDE2')"></div>
+    <div class="color-option" style="background-color: #F1948A" onclick="changeAvatarColor('#F1948A')"></div>
+</div>
 
 <div class="card">
   {% if lang == "ru" %}
@@ -118,4 +148,33 @@
     </div>
   </form>
 </div>
+
+<script>
+function showColorPalette() {
+    document.getElementById('colorPalette').style.display = 'grid';
+    document.getElementById('overlay').style.display = 'block';
+}
+
+function hideColorPalette() {
+    document.getElementById('colorPalette').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+}
+
+function changeAvatarColor(color) {
+    document.getElementById('avatar').style.backgroundColor = color;
+    
+    fetch('/user/update_avatar_color', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({color: color})
+    }).then(response => response.json())
+      .then(data => {
+          if (data.status === 'ok') {
+              hideColorPalette();
+          }
+      });
+}
+</script>
 {% endblock %}
