@@ -5,6 +5,7 @@ import threading
 import time
 import tempfile
 import os
+import shutil
 from huggingface_hub import hf_hub_download, list_repo_files
 from config import SUBJECTS, repo_id, repo_type, REFRESH_INTERVAL, CACHE_FILE
 
@@ -51,6 +52,19 @@ def _load_file(filepath: str, exclude_ids: set) -> list:
             except json.JSONDecodeError:
                 continue
     return problems
+
+
+def _cleanup_temp_dir():
+    try:
+        if os.path.exists(_tmp_dir):
+            for filename in os.listdir(_tmp_dir):
+                filepath = os.path.join(_tmp_dir, filename)
+                if os.path.isfile(filepath):
+                    os.remove(filepath)
+                elif os.path.isdir(filepath):
+                    shutil.rmtree(filepath)
+    except Exception:
+        pass
 
 
 def _download_for(subject: str, difficulty: str) -> list:
@@ -122,6 +136,8 @@ def _load_pool() -> dict:
 
 
 def _refresh():
+    _cleanup_temp_dir()
+    
     new_pool = {}
 
     for subject in SUBJECTS:
