@@ -19,6 +19,7 @@ class User(SqlAlchemyBase, UserMixin):
     stats = sa.Column(sa.JSON, nullable=False, default=dict)
     achievements = sa.Column(sa.JSON, nullable=False, default=dict)
     avatar_color = sa.Column(sa.String, nullable=False, default='#FF6B6B')
+    avatar_image = sa.Column(sa.Text, nullable=True, default=None)
 
     @classmethod
     def register(cls, username: str, password: str) -> Optional['User']:
@@ -111,6 +112,23 @@ class User(SqlAlchemyBase, UserMixin):
         with create_session() as s:
             user = s.get(User, self.id)
             return user.avatar_color
+
+    def get_avatar_image(self) -> str:
+        with create_session() as s:
+            user = s.get(User, self.id)
+            return user.avatar_image
+
+    def set_avatar_image(self, data_url: str):
+        with create_session() as s:
+            user = s.get(User, self.id)
+            user.avatar_image = data_url
+            s.commit()
+
+    def clear_avatar_image(self):
+        with create_session() as s:
+            user = s.get(User, self.id)
+            user.avatar_image = None
+            s.commit()
         
     def update_achievements(self, user, web_session):
         with create_session() as s:

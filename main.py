@@ -4,8 +4,6 @@ from logic.app import app
 from logic.login import login_manager
 from config import DB_PATH
 
-AI_COOLDOWN = 10
-
 global_init(DB_PATH)
 start_cache()
 

@@ -1,19 +1,19 @@
 import os
+import time
+import base64
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from data.user import User
 from data.cache import get_problem, start as start_cache
 from data.ai import check_answer, get_ai_response, NoKeyError
 from collections import defaultdict
-import time
 from trans_ru import ACHIEVEMENTS_RU, SUBJECTS_RU
-from config import SUBJECTS
+from config import SUBJECTS, AI_COOLDOWN
 from data.db_session import create_session
 
 start_cache()
 
 _ai_last_call: dict[str, float] = defaultdict(float)
-AI_COOLDOWN = 15
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'very_secret')
@@ -211,4 +211,25 @@ def update_avatar_color():
             user = s.get(User, current_user.id)
             user.avatar_color = color
             s.commit()
+    return jsonify({'status': 'ok'})
+
+@app.route('/user/upload_avatar', methods=['POST'])
+@login_required
+def upload_avatar():
+    file = request.files.get('avatar')
+    if not file or file.filename == '':
+        return jsonify({'error': 'No file provided.'}), 400
+    if not file.content_type.startswith('image/'):
+        return jsonify({'error': 'File must be an image.'}), 400
+    data = file.read(2 * 1024 * 1024 + 1)
+    if len(data) > 2 * 1024 * 1024:
+        return jsonify({'error': 'Image must be under 2 MB.'}), 400
+    data_url = 'data:' + file.content_type + ';base64,' + base64.b64encode(data).decode()
+    current_user.set_avatar_image(data_url)
+    return jsonify({'status': 'ok', 'data_url': data_url})
+
+@app.route('/user/clear_avatar', methods=['POST'])
+@login_required
+def clear_avatar():
+    current_user.clear_avatar_image()
     return jsonify({'status': 'ok'})

@@ -9,9 +9,15 @@
 {% block content %}
 <div class="profile-header">
     <div class="avatar-edit">
+        {% if current_user.get_avatar_image() %}
+        <div class="avatar avatar-img" id="avatar">
+            <img id="avatar-img-el" src="{{ current_user.get_avatar_image() }}" alt="avatar">
+        </div>
+        {% else %}
         <div class="avatar" id="avatar" style="background-color: {{ current_user.get_avatar_color() }}">
             {{ current_user.username[:2].upper() }}
         </div>
+        {% endif %}
         <div class="avatar-edit-btn" onclick="showColorPalette()">
             🎨
         </div>
@@ -36,6 +42,13 @@
     <div class="color-option" style="background-color: #F9E79F" onclick="changeAvatarColor('#F9E79F')"></div>
     <div class="color-option" style="background-color: #D7BDE2" onclick="changeAvatarColor('#D7BDE2')"></div>
     <div class="color-option" style="background-color: #F1948A" onclick="changeAvatarColor('#F1948A')"></div>
+    <div class="palette-upload-row">
+        <label class="palette-upload-btn" for="avatarUpload">📷 {% if lang == "ru" %}Загрузить фото{% else %}Upload photo{% endif %}</label>
+        <input type="file" id="avatarUpload" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+        {% if current_user.get_avatar_image() %}
+        <button class="palette-remove-btn" onclick="clearAvatar()">✕ {% if lang == "ru" %}Удалить{% else %}Remove{% endif %}</button>
+        {% endif %}
+    </div>
 </div>
 
 <div class="card">
@@ -161,20 +174,50 @@ function hideColorPalette() {
 }
 
 function changeAvatarColor(color) {
-    document.getElementById('avatar').style.backgroundColor = color;
-    
+    const avatarEl = document.getElementById('avatar');
+    avatarEl.style.backgroundColor = color;
+    avatarEl.className = 'avatar';
+    avatarEl.innerHTML = '{{ current_user.username[:2].upper() }}';
+
     fetch('/user/update_avatar_color', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({color: color})
-    }).then(response => response.json())
-      .then(data => {
-          if (data.status === 'ok') {
-              hideColorPalette();
-          }
-      });
+    }).then(r => r.json()).then(data => {
+        if (data.status === 'ok') {
+            fetch('/user/clear_avatar', {method: 'POST'});
+            hideColorPalette();
+        }
+    });
+}
+
+function uploadAvatar(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('avatar', file);
+    fetch('/user/upload_avatar', {method: 'POST', body: formData})
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                const avatarEl = document.getElementById('avatar');
+                avatarEl.className = 'avatar avatar-img';
+                avatarEl.innerHTML = '<img id="avatar-img-el" src="' + data.data_url + '" alt="avatar">';
+                hideColorPalette();
+            } else {
+                alert(data.error || 'Upload failed.');
+            }
+        });
+}
+
+function clearAvatar() {
+    fetch('/user/clear_avatar', {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                location.reload();
+            }
+        });
 }
 </script>
 {% endblock %}

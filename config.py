@@ -34,3 +34,5 @@ CACHE_FILE = 'pool_cache.pkl'
 def _default_stats() -> dict[str, int]:
     return {key: 0 for key in SUBJECTS + [str(d) for d in range(1, 11)]}
 
+
+AI_COOLDOWN = 15
